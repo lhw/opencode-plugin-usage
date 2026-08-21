@@ -361,7 +361,7 @@ function element(
   for (const child of children) {
     if (child !== null && child !== undefined && child !== false) insert(node, child);
   }
-  return node as JSX.Element;
+  return node as unknown as JSX.Element;
 }
 
 function text(props: Record<string, unknown>, children: Child[] = []): JSX.Element {
