@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "opencode-usage-limits",
+  "name": "opencode-plugin-usage",
   "version": "0.1.0",
   "description": "OpenCode TUI plugin that shows the active provider's usage limits (opencode-go 5h/week/month) or remaining credit (deepseek) stacked in the sidebar",
   "type": "module",

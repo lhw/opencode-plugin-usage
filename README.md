@@ -1,4 +1,4 @@
-# opencode-usage-limits
+# opencode-plugin-usage
 
 An OpenCode **TUI plugin** that shows the active provider's usage in the sidebar —
 stacked windows for providers with usage limits, remaining credit for providers
@@ -32,13 +32,13 @@ Bar colors: green `<50%`, amber `50–74%`, orange `75–99%`, red `100%`.
 Once published:
 
 ```sh
-opencode plugin opencode-usage-limits@latest --global --force
+opencode plugin opencode-plugin-usage@latest --global --force
 ```
 
 ### Local development
 
 ```sh
-git clone <this-repo> && cd opencode-usage-limits
+git clone <this-repo> && cd opencode-plugin-usage
 npm install
 npm run dev:install        # builds dist/tui.js and copies it into ~/.config/opencode/usage-limits/
 ```

@@ -54,7 +54,7 @@ function xdgDataDir(): string | undefined {
 }
 
 const plugin: TuiPluginModule & { id: string } = {
-  id: "opencode-usage-limits",
+  id: "opencode-plugin-usage",
   tui: async (api, rawOptions) => {
     const config = normalizeOptions(rawOptions);
     const state: State = { usageByProvider: {}, errorByProvider: {}, refreshing: false, lastFetchAt: 0 };
