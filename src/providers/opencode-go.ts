@@ -134,7 +134,9 @@ function percentOf(window: Record<string, unknown>): number | undefined {
   for (const key of PERCENT_KEYS) {
     const value = num(window[key]);
     if (value !== undefined) {
-      const direct = value <= 1 && value >= 0 ? value * 100 : value;
+      // Fraction (0,1) values are scaled to percent; integer percents (0..100)
+      // are used as-is so that e.g. 1 stays 1%.
+      const direct = value > 0 && value < 1 ? value * 100 : value;
       return clampPercent(direct);
     }
   }
@@ -149,7 +151,7 @@ function percentOf(window: Record<string, unknown>): number | undefined {
   // "usage" alone (no limit) means a percent value, often a 0..1 fraction.
   const usage = num(window["usage"]);
   if (usage !== undefined) {
-    const direct = usage <= 1 && usage >= 0 ? usage * 100 : usage;
+    const direct = usage > 0 && usage < 1 ? usage * 100 : usage;
     return clampPercent(direct);
   }
   return undefined;

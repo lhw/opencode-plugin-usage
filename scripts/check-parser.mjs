@@ -113,3 +113,10 @@ assert.deepEqual(parseCreditGrants({ total_granted: 20 }), []);
 assert.deepEqual(parseCreditGrants("nope"), []);
 
 console.log("openrouter + openai checks passed");
+
+// percent of exactly 1 is 1%, not 100% (fraction heuristic must not fire on integer percents)
+w = parseUsageResponse({ rollingUsage: { percent: 1, resetInSec: 600 } }, now);
+assert.equal(w.length, 1);
+assert.equal(w[0].percent, 1);
+w = parseUsageResponse({ rollingUsage: { percent: 0, resetInSec: 600 } }, now);
+assert.equal(w[0].percent, 0);
