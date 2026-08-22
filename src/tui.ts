@@ -35,7 +35,7 @@ interface State {
 }
 
 const BAR_FULL = "━";
-const BAR_WIDTH = 12;
+const BAR_WIDTH = 10;
 const LABEL_WIDTH = 6;
 const BOLD = createTextAttributes({ bold: true });
 const SLOT_ORDER = 60;
@@ -319,7 +319,7 @@ function tierColor(percent: number, theme: TuiPluginApi["theme"]["current"]): un
 
 function barString(percent: number, width = BAR_WIDTH): string {
   const filled = Math.round((percent / 100) * width);
-  return BAR_FULL.repeat(filled);
+  return BAR_FULL.repeat(filled) + " ".repeat(Math.max(0, width - filled));
 }
 
 function formatPercent(percent: number): string {
