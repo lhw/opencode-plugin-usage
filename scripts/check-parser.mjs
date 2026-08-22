@@ -2,6 +2,8 @@
 import assert from "node:assert/strict";
 import { parseUsageResponse } from "../src/providers/opencode-go.ts";
 import { parseBalance } from "../src/providers/deepseek.ts";
+import { parseCredits } from "../src/providers/openrouter.ts";
+import { parseCreditGrants } from "../src/providers/openai.ts";
 
 const now = 1_752_000_000;
 
@@ -95,3 +97,19 @@ assert.deepEqual(parseBalance([]), []);
 assert.deepEqual(parseBalance(null), []);
 
 console.log("deepseek balance checks passed");
+
+// openrouter credits
+assert.deepEqual(parseCredits({ data: { total_credits: 10, total_usage: 3.5 } }), [{ currency: "USD", total: 6.5 }]);
+assert.deepEqual(parseCredits({ data: { total_credits: 2, total_usage: 5 } }), [{ currency: "USD", total: 0 }]);
+assert.deepEqual(parseCredits({ data: { total_usage: 1 } }), []);
+assert.deepEqual(parseCredits({}), []);
+assert.deepEqual(parseCredits(null), []);
+
+// openai credit grants
+assert.deepEqual(parseCreditGrants({ total_available: 12.5, total_granted: 20, total_used: 7.5 }), [
+  { currency: "USD", total: 12.5 },
+]);
+assert.deepEqual(parseCreditGrants({ total_granted: 20 }), []);
+assert.deepEqual(parseCreditGrants("nope"), []);
+
+console.log("openrouter + openai checks passed");

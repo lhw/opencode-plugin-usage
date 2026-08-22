@@ -6,6 +6,8 @@ with a balance.
 
 - **opencode-go** — rolling 5h / weekly / monthly usage limits as thin colored bars
 - **deepseek** — remaining API credit (green when available, red when not)
+- **openrouter** — remaining credit balance
+- **openai** — remaining API credit balance (requires an org admin key)
 
 It follows the provider actually in use for the active session, and shows a
 configurable **default** provider (e.g. your Go subscription) when the active
@@ -108,14 +110,19 @@ or `/connect`), no extra configuration is needed.
 
 ## Providers
 
-| Provider    | Source                                   | Display                              |
-| ----------- | ---------------------------------------- | ------------------------------------ |
-| opencode-go | `https://opencode.ai/zen/go/v1/usage`    | 5h/week/month windows + bars         |
-| deepseek    | `https://api.deepseek.com/user/balance`  | remaining credit                     |
+| Provider    | Source                                           | Display                          |
+| ----------- | ------------------------------------------------ | -------------------------------- |
+| opencode-go | `https://opencode.ai/zen/go/v1/usage`            | 5h/week/month windows + bars     |
+| deepseek    | `https://api.deepseek.com/user/balance`          | remaining credit                 |
+| openrouter  | `https://openrouter.ai/api/v1/credits`           | remaining credit (`credits` key) |
+| openai      | `https://api.openai.com/v1/dashboard/billing/credit_grants` | remaining credit (org admin key) |
 
 Adding a provider is one new file in `src/providers/` implementing the
-`Provider` interface (key resolution + a `fetchUsage`) and registering it in
-`src/providers/registry.ts`.
+`Provider` interface (key resolution + a `fetchUsage`) and adding it to the
+`providers` array in `src/tui.ts`.
+
+Key env vars: `OPENCODE_API_KEY`, `DEEPSEEK_API_KEY`, `OPENROUTER_API_KEY`,
+`OPENAI_API_KEY` (or the matching `auth.json` entry / `providers.<id>.apiKey`).
 
 ## Development
 

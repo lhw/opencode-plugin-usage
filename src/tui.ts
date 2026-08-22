@@ -5,7 +5,9 @@ import type { JSX } from "@opentui/solid";
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui";
 import { normalizeOptions, type PluginOptions } from "./config.ts";
 import { deepseekProvider } from "./providers/deepseek.ts";
+import { openaiProvider } from "./providers/openai.ts";
 import { opencodeGoProvider } from "./providers/opencode-go.ts";
+import { openrouterProvider } from "./providers/openrouter.ts";
 import type { BalanceInfo, ProviderUsage, UsageWindow } from "./types.ts";
 
 type Child = JSX.Element | string | number | null | undefined | false;
@@ -38,7 +40,7 @@ const LABEL_WIDTH = 6;
 const BOLD = createTextAttributes({ bold: true });
 const SLOT_ORDER = 60;
 
-const providers = [opencodeGoProvider, deepseekProvider];
+const providers = [opencodeGoProvider, deepseekProvider, openrouterProvider, openaiProvider];
 const providerById = (id: string) => providers.find((p) => p.id === id);
 
 // Replicates xdg-basedir's xdgData, which opencode uses for Global.Path.data.
