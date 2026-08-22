@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/lhw/opencode-plugin-usage/compare/v1.0.0...v1.0.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* percent of exactly 1 parsed as 100% in opencode-go ([789c981](https://github.com/lhw/opencode-plugin-usage/commit/789c981f86d32dd79d28d58090997458a8a8af05))
+
 ## 1.0.0 (2026-08-22)
 
 
