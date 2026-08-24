@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/lhw/opencode-plugin-usage/compare/v1.0.1...v1.0.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* compact usage bar alignment ([2b9831e](https://github.com/lhw/opencode-plugin-usage/commit/2b9831e94b221cde6054996a84fb84947372c154))
+
 ## [1.0.1](https://github.com/lhw/opencode-plugin-usage/compare/v1.0.0...v1.0.1) (2026-08-22)
 
 
