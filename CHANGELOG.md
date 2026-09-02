@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/lhw/opencode-plugin-usage/compare/v1.1.0...v1.1.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* github copilot metrics work without explicit api token via local host ([998fba1](https://github.com/lhw/opencode-plugin-usage/commit/998fba1dd5f7f9e2878f1ae7c0ee75202e1080af))
+
 ## [1.1.0](https://github.com/lhw/opencode-plugin-usage/compare/v1.0.2...v1.1.0) (2026-09-02)
 
 
