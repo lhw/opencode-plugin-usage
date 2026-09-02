@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/lhw/opencode-plugin-usage/compare/v1.0.2...v1.1.0) (2026-09-02)
+
+
+### Features
+
+* add github copilot provider with local oauth auth ([e22f06a](https://github.com/lhw/opencode-plugin-usage/commit/e22f06a589c35ab78e54389549df9076c1eaad5d))
+
+
+### Bug Fixes
+
+* pin solid-js to 1.9.12 to satisfy opentui peer ([0b7dcef](https://github.com/lhw/opencode-plugin-usage/commit/0b7dcef04a4b6339bb42c98d294c239591c458f0))
+
 ## [1.0.2](https://github.com/lhw/opencode-plugin-usage/compare/v1.0.1...v1.0.2) (2026-08-24)
 
 
