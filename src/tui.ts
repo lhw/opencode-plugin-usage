@@ -51,11 +51,10 @@ const providers = [
 ];
 const providerById = (id: string) => providers.find((p) => p.id === id);
 
-// Replicates xdg-basedir's xdgData, which opencode uses for Global.Path.data.
+// opencode stores auth at ~/.local/share/opencode/auth.json even on darwin (not Library/Application Support)
 function xdgDataDir(): string | undefined {
   if (process.env.XDG_DATA_HOME) return process.env.XDG_DATA_HOME;
   const home = process.env.HOME;
-  if (process.platform === "darwin") return home ? `${home}/Library/Application Support` : undefined;
   if (process.platform === "win32") {
     if (process.env.APPDATA) return process.env.APPDATA;
     return home ? `${home}/AppData/Roaming` : undefined;

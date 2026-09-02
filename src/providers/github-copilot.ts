@@ -1,3 +1,5 @@
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fetchJSON, isRecord, num } from "../fetch.ts";
 import { storedApiKey } from "./auth.ts";
 import type { FetchContext, Provider, ProviderUsage, ResolveKeyContext, UsageWindow, UsageWindowId } from "../types.ts";
@@ -160,10 +162,30 @@ export const githubCopilotProvider: Provider = {
     // opencode also stores enterprise variant under github-copilot-enterprise
     const fromEnterprise = storedApiKey("github-copilot-enterprise", ctx);
     if (fromEnterprise) return fromEnterprise;
+    // ponytail: local host gh CLI credential (keyring/hosts.yml) — no explicit token required
+    const fromGh = ghCliToken();
+    if (fromGh) return fromGh;
     return undefined;
   },
   fetchUsage,
 };
+
+// Best-effort local-host token from `gh` CLI (keyring-aware) or plaintext hosts.yml.
+function ghCliToken(): string | undefined {
+  try {
+    const out = execSync("gh auth token -h github.com 2>/dev/null", { encoding: "utf8", timeout: 2_000 });
+    const tok = out.trim();
+    if (tok) return tok;
+  } catch {}
+  try {
+    const home = process.env.HOME;
+    if (!home) return undefined;
+    const text = readFileSync(`${home}/.config/gh/hosts.yml`, "utf8");
+    const m = text.match(/oauth_token:\s*(\S+)/);
+    if (m?.[1]) return m[1].trim();
+  } catch {}
+  return undefined;
+}
 
 export const githubCopilotEnterpriseProvider: Provider = {
   id: "github-copilot-enterprise",
