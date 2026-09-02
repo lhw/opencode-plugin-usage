@@ -18,6 +18,9 @@ const WINDOW_LABELS: Record<UsageWindowId, string> = {
   rolling: "5h",
   weekly: "Week",
   monthly: "Month",
+  premium: "Premium",
+  chat: "Chat",
+  completions: "Compl.",
 };
 
 const PERCENT_KEYS = [

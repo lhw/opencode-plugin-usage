@@ -1,4 +1,4 @@
-export type UsageWindowId = "rolling" | "weekly" | "monthly";
+export type UsageWindowId = "rolling" | "weekly" | "monthly" | "premium" | "chat" | "completions";
 
 export interface UsageWindow {
   id: UsageWindowId;

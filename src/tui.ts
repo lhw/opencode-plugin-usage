@@ -5,6 +5,7 @@ import type { JSX } from "@opentui/solid";
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui";
 import { normalizeOptions, type PluginOptions } from "./config.ts";
 import { deepseekProvider } from "./providers/deepseek.ts";
+import { githubCopilotEnterpriseProvider, githubCopilotProvider } from "./providers/github-copilot.ts";
 import { openaiProvider } from "./providers/openai.ts";
 import { opencodeGoProvider } from "./providers/opencode-go.ts";
 import { openrouterProvider } from "./providers/openrouter.ts";
@@ -40,7 +41,14 @@ const LABEL_WIDTH = 6;
 const BOLD = createTextAttributes({ bold: true });
 const SLOT_ORDER = 60;
 
-const providers = [opencodeGoProvider, deepseekProvider, openrouterProvider, openaiProvider];
+const providers = [
+  opencodeGoProvider,
+  deepseekProvider,
+  openrouterProvider,
+  openaiProvider,
+  githubCopilotProvider,
+  githubCopilotEnterpriseProvider,
+];
 const providerById = (id: string) => providers.find((p) => p.id === id);
 
 // Replicates xdg-basedir's xdgData, which opencode uses for Global.Path.data.
@@ -120,7 +128,7 @@ const plugin: TuiPluginModule & { id: string } = {
         stateDir: dataDir(),
       });
       if (!apiKey) {
-        state.errorByProvider[providerId] = `no API key — add "providers.${providerId}.apiKey" to the plugin options in tui.json, or export OPENCODE_API_KEY`;
+        state.errorByProvider[providerId] = `no API key — add "providers.${providerId}.apiKey" or run opencode auth login for ${providerId}`;
         delete state.usageByProvider[providerId];
         repaint();
         return;
