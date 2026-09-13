@@ -2,7 +2,7 @@ import { createElement, insert, setProp } from "@opentui/solid";
 import { createTextAttributes } from "@opentui/core";
 import { createSignal } from "solid-js";
 import type { JSX } from "@opentui/solid";
-import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui";
+import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/v1/tui";
 import { normalizeOptions, type PluginOptions } from "./config.ts";
 import { deepseekProvider } from "./providers/deepseek.ts";
 import { githubCopilotEnterpriseProvider, githubCopilotProvider } from "./providers/github-copilot.ts";
@@ -160,12 +160,15 @@ const plugin: TuiPluginModule & { id: string } = {
       }
     }
 
+    // opencode v2 dropped message.* / session.updated events; the bus now emits
+    // session-level events with the payload under `data` (was `properties`).
+    // session.status fires on every status transition, so it stands in for the
+    // removed per-message triggers; the interval below is the in-turn backstop.
     const unsubs = [
-      api.event.on("message.updated", applyActive),
       api.event.on("session.created", () => void refresh()),
-      api.event.on("session.updated", applyActive),
       api.event.on("session.status", (event) => {
-        if (event.properties.status.type === "busy") void refresh();
+        applyActive();
+        if (event.data.status.type === "busy") void refresh();
       }),
       api.event.on("session.idle", () => void refresh()),
     ];
