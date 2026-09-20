@@ -2,7 +2,8 @@ import { createElement, insert, setProp } from "@opentui/solid";
 import { createTextAttributes } from "@opentui/core";
 import { createSignal } from "solid-js";
 import type { JSX } from "@opentui/solid";
-import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/v1/tui";
+import { Plugin } from "@opencode/plugin/tui";
+import type { Context } from "@opencode/plugin/tui/context";
 import { normalizeOptions, type PluginOptions } from "./config.ts";
 import { deepseekProvider } from "./providers/deepseek.ts";
 import { githubCopilotEnterpriseProvider, githubCopilotProvider } from "./providers/github-copilot.ts";
@@ -12,6 +13,7 @@ import { openrouterProvider } from "./providers/openrouter.ts";
 import type { BalanceInfo, ProviderUsage, UsageWindow } from "./types.ts";
 
 type Child = JSX.Element | string | number | null | undefined | false;
+type Theme = Context["theme"];
 
 interface LinePart {
   text: string;
@@ -39,7 +41,6 @@ const BAR_FULL = "━";
 const BAR_WIDTH = 10;
 const LABEL_WIDTH = 6;
 const BOLD = createTextAttributes({ bold: true });
-const SLOT_ORDER = 60;
 
 const providers = [
   opencodeGoProvider,
@@ -62,44 +63,44 @@ function xdgDataDir(): string | undefined {
   return home ? `${home}/.local/share` : undefined;
 }
 
-const plugin: TuiPluginModule & { id: string } = {
+export default Plugin.define({
   id: "opencode-plugin-usage",
-  tui: async (api, rawOptions) => {
-    const config = normalizeOptions(rawOptions);
+  async setup(context) {
+    const config = normalizeOptions(context.options);
     const state: State = { usageByProvider: {}, errorByProvider: {}, refreshing: false, lastFetchAt: 0 };
     let lastDisplay: string | undefined;
+    // Session whose sidebar we last rendered; used when the router has no session route.
+    let sidebarSessionID: string | undefined;
+    // Provider of opencode's configured default model, resolved once as a fallback.
+    let defaultProviderID: string | undefined;
 
     // Reactive repaint: solid signal read inside the slot so the host re-renders
-    // it when we bump it (api.renderer.requestRender alone does not repaint here).
+    // it when we bump it (renderer.requestRender alone does not repaint the slot).
     const [getRenderTick, setRenderTick] = createSignal(0);
     const repaint = () => {
       setRenderTick((n) => n + 1);
-      api.renderer.requestRender();
+      context.renderer.requestRender();
     };
-    // opencode stores auth.json in Global.Path.data, not api.state.path.state
-    // (the state dir). Replicate xdg-basedir's xdgData + "/opencode".
+
+    // opencode stores auth.json in its data dir, not the state dir.
     const dataDir = () => {
       const base = xdgDataDir();
       return base ? `${base}/opencode` : undefined;
     };
 
-    // The provider actually being used by the active session: last assistant
-    // message's providerID, else the configured default model's provider.
+    // The provider actually being used by the active session: the model of the
+    // last assistant message, else the configured default model's provider.
     function activeProvider(): string | undefined {
-      const route = api.route.current;
-      if (route.name === "session") {
-        const sessionId = route.params?.sessionID as string | undefined;
-        if (sessionId) {
-          const messages = api.state.session.messages(sessionId);
-          for (let i = messages.length - 1; i >= 0; i--) {
-            const message = messages[i] as { role?: string; providerID?: string };
-            if (message.role === "assistant" && message.providerID) return message.providerID;
-          }
+      const route = context.ui.router.current();
+      const sessionID = route.type === "session" ? route.sessionID : sidebarSessionID;
+      if (sessionID) {
+        const messages = context.data.session.message.list(sessionID);
+        for (let i = messages.length - 1; i >= 0; i--) {
+          const message = messages[i];
+          if (message.type === "assistant") return message.model.providerID;
         }
       }
-      const model = api.state.config.model;
-      if (typeof model === "string" && model.includes("/")) return model.split("/")[0];
-      return undefined;
+      return defaultProviderID;
     }
 
     // What we render: the active provider when it has a usage source; otherwise
@@ -160,56 +161,65 @@ const plugin: TuiPluginModule & { id: string } = {
       }
     }
 
-    // opencode v2 dropped message.* / session.updated events; the bus now emits
-    // session-level events with the payload under `data` (was `properties`).
-    // session.status fires on every status transition, so it stands in for the
-    // removed per-message triggers; the interval below is the in-turn backstop.
+    // v2 emits `session.status` for every status transition and `session.idle`
+    // when a turn settles; the interval below is the in-turn backstop.
     const unsubs = [
-      api.event.on("session.created", () => void refresh()),
-      api.event.on("session.status", (event) => {
+      context.data.on("session.created", () => void refresh()),
+      context.data.on("session.status", (event) => {
         applyActive();
         if (event.data.status.type === "busy") void refresh();
       }),
-      api.event.on("session.idle", () => void refresh()),
+      context.data.on("session.idle", () => void refresh()),
     ];
     const refreshTimer = setInterval(() => void refresh(), config.refreshMs);
     // Self-heal: re-derive the active provider and fetch data it doesn't have yet,
     // even when no event/render signals it (e.g. session recovery).
     const ensureTimer = setInterval(applyActive, 5_000);
 
-    api.lifecycle.onDispose(() => {
-      for (const unsub of unsubs) unsub();
-      clearInterval(refreshTimer);
-      clearInterval(ensureTimer);
-    });
+    // Resolve the configured default model's provider for the fallback above.
+    void context.client
+      .model.default()
+      .then((result) => {
+        defaultProviderID = result.data?.providerID;
+        applyActive();
+      })
+      .catch(() => {
+        // no default model resolved; active-session detection still works
+      });
 
     lastDisplay = resolveDisplay();
     void refresh();
 
-    api.slots.register({
-      order: SLOT_ORDER,
-      slots: {
-        sidebar_content(): JSX.Element {
-          getRenderTick(); // subscribe to repaint bumps (solid-reactive)
-          // Lazy self-heal: if the displayed provider has no data yet (e.g. after
-          // loading an existing session, which may not emit events), fetch it.
-          const display = resolveDisplay();
-          const hasUsage = display !== undefined && state.usageByProvider[display] !== undefined;
-          const hasError = display !== undefined && state.errorByProvider[display] !== undefined;
-          if (!hasUsage && !hasError && !state.refreshing && display !== undefined) {
-            void refresh();
-          }
-          return renderPanel(state, config, api.theme.current, resolveDisplay);
-        },
+    const unregister = context.ui.slot({
+      append: "sidebar.content",
+      render: (input) => {
+        sidebarSessionID = input.sessionID;
+        getRenderTick(); // subscribe to repaint bumps (solid-reactive)
+        // Lazy self-heal: if the displayed provider has no data yet (e.g. after
+        // loading an existing session, which may not emit events), fetch it.
+        const display = resolveDisplay();
+        const hasUsage = display !== undefined && state.usageByProvider[display] !== undefined;
+        const hasError = display !== undefined && state.errorByProvider[display] !== undefined;
+        if (!hasUsage && !hasError && !state.refreshing && display !== undefined) {
+          void refresh();
+        }
+        return renderPanel(state, config, context.theme, resolveDisplay);
       },
     });
+
+    return () => {
+      for (const unsub of unsubs) unsub();
+      clearInterval(refreshTimer);
+      clearInterval(ensureTimer);
+      unregister();
+    };
   },
-};
+});
 
 function renderPanel(
   state: State,
   config: PluginOptions,
-  theme: TuiPluginApi["theme"]["current"],
+  theme: Theme,
   getDisplay: () => string | undefined,
 ): JSX.Element {
   const lines = buildLines(state, config, theme, getDisplay);
@@ -247,17 +257,17 @@ function renderPanel(
 function buildLines(
   state: State,
   config: PluginOptions,
-  theme: TuiPluginApi["theme"]["current"],
+  theme: Theme,
   getDisplay: () => string | undefined,
 ): Line[] {
-  const header: Line = { parts: [{ text: "Usage limits", fg: theme.text, bold: true }] };
+  const header: Line = { parts: [{ text: "Usage limits", fg: theme.text.base, bold: true }] };
 
   const providerId = getDisplay();
-  if (!providerId) return [header, { parts: [{ text: "usage: no active provider", fg: theme.textMuted }] }];
+  if (!providerId) return [header, { parts: [{ text: "usage: no active provider", fg: theme.text.muted }] }];
 
   const provider = providerById(providerId);
   if (!provider) {
-    return [header, { parts: [{ text: `usage: no source for ${providerId}`, fg: theme.textMuted }] }];
+    return [header, { parts: [{ text: `usage: no source for ${providerId}`, fg: theme.text.muted }] }];
   }
   const options = config.providers[providerId];
   if (options && options.enabled === false) return [header];
@@ -269,8 +279,8 @@ function buildLines(
   if (usage) {
     const age = formatAge(Date.now() - usage.fetchedAt);
     lines.push({
-      parts: [{ text: provider.name, fg: theme.textMuted }],
-      right: [{ text: `updated ${age}`, fg: theme.textMuted }],
+      parts: [{ text: provider.name, fg: theme.text.muted }],
+      right: [{ text: `updated ${age}`, fg: theme.text.muted }],
     });
     if (usage.balance && usage.balance.length > 0) {
       for (const balance of usage.balance) lines.push(balanceLine(balance, usage.isAvailable !== false, theme));
@@ -278,21 +288,21 @@ function buildLines(
       for (const window of usage.windows) lines.push(windowLine(window, theme));
     }
   } else if (error) {
-    lines.push({ parts: [{ text: `${provider.name}: ${error}`, fg: theme.textMuted }] });
+    lines.push({ parts: [{ text: `${provider.name}: ${error}`, fg: theme.text.muted }] });
   } else {
-    lines.push({ parts: [{ text: `${provider.name}: loading…`, fg: theme.textMuted }] });
+    lines.push({ parts: [{ text: `${provider.name}: loading…`, fg: theme.text.muted }] });
   }
   return lines;
 }
 
-function balanceLine(balance: BalanceInfo, isAvailable: boolean, theme: TuiPluginApi["theme"]["current"]): Line {
-  const fg = isAvailable ? theme.success : theme.error;
+function balanceLine(balance: BalanceInfo, isAvailable: boolean, theme: Theme): Line {
+  const fg = isAvailable ? theme.text.feedback.success.base : theme.text.feedback.error.base;
   return {
     parts: [
-      { text: balance.currency, fg: theme.text, width: LABEL_WIDTH },
+      { text: balance.currency, fg: theme.text.base, width: LABEL_WIDTH },
       { text: formatMoney(balance.total, balance.currency), fg },
     ],
-    right: [{ text: isAvailable ? "remaining" : "insufficient", fg: theme.textMuted }],
+    right: [{ text: isAvailable ? "remaining" : "insufficient", fg: theme.text.muted }],
   };
 }
 
@@ -304,15 +314,15 @@ function formatMoney(amount: number, currency: string): string {
   }
 }
 
-function windowLine(window: UsageWindow, theme: TuiPluginApi["theme"]["current"]): Line {
+function windowLine(window: UsageWindow, theme: Theme): Line {
   const color = tierColor(window.percent, theme);
   const right: LinePart[] = [];
   if (window.resetInSec > 0) {
-    right.push({ text: `· resets ${formatReset(window.resetInSec)}`, fg: theme.textMuted });
+    right.push({ text: `· resets ${formatReset(window.resetInSec)}`, fg: theme.text.muted });
   }
   return {
     parts: [
-      { text: window.label, fg: theme.text, width: LABEL_WIDTH },
+      { text: window.label, fg: theme.text.base, width: LABEL_WIDTH },
       { text: barString(window.percent), fg: color },
       { text: ` ${formatPercent(window.percent)}`, fg: color },
     ],
@@ -320,11 +330,11 @@ function windowLine(window: UsageWindow, theme: TuiPluginApi["theme"]["current"]
   };
 }
 
-function tierColor(percent: number, theme: TuiPluginApi["theme"]["current"]): unknown {
-  if (percent >= 100) return theme.error;
-  if (percent >= 75) return theme.warning;
-  if (percent >= 50) return theme.accent;
-  return theme.success;
+function tierColor(percent: number, theme: Theme): unknown {
+  if (percent >= 100) return theme.text.feedback.error.base;
+  if (percent >= 75) return theme.text.feedback.warning.base;
+  if (percent >= 50) return theme.hue.accent[500];
+  return theme.text.feedback.success.base;
 }
 
 function barString(percent: number, width = BAR_WIDTH): string {
@@ -383,5 +393,3 @@ function text(props: Record<string, unknown>, children: Child[] = []): JSX.Eleme
 function box(props: Record<string, unknown>, children: Child[] = []): JSX.Element {
   return element("box", props, children);
 }
-
-export default plugin;

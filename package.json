@@ -16,8 +16,7 @@
     "opencode": ">=2.0.0"
   },
   "scripts": {
-    "build": "esbuild src/tui.ts --bundle --format=esm --platform=node --external:@opencode-ai/plugin --external:@opentui/solid --external:@opentui/core --external:solid-js --outfile=dist/tui.js",
-    "dev:install": "npm run build && mkdir -p \"$HOME/.config/opencode/usage-limits\" && cp dist/tui.js \"$HOME/.config/opencode/usage-limits/tui.js\"",
+    "build": "esbuild src/tui.ts --bundle --format=esm --platform=node --external:@opencode/plugin/tui --external:@opentui/solid --external:@opentui/core --external:solid-js --outfile=dist/tui.js",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/check-parser.mjs",
     "prepublishOnly": "npm run typecheck && npm run build && npm test"
@@ -43,12 +42,14 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@opencode-ai/plugin": ">=0.0.0-next-17444",
-    "@opentui/core": ">=0.2.9",
-    "@opentui/solid": ">=0.2.9"
+    "@opencode/plugin": ">=2.0.0",
+    "@opentui/core": ">=0.5.10",
+    "@opentui/solid": ">=0.5.10",
+    "solid-js": ">=1.9.0"
   },
   "devDependencies": {
-    "@opencode-ai/plugin": "0.0.0-next-17444",
+    "@opencode/plugin": "^2.0.11",
+    "@opencode/theme": "^2.0.11",
     "@opentui/core": "0.5.11",
     "@opentui/keymap": "0.5.11",
     "@opentui/solid": "0.5.11",
