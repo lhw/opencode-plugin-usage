@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/lhw/opencode-plugin-usage/compare/v1.1.1...v2.0.0) (2026-09-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* requires opencode v2; no longer runs on opencode 1.x.
+
+### Features
+
+* migrate TUI plugin to opencode v2 (import /v1/tui) ([eec88bf](https://github.com/lhw/opencode-plugin-usage/commit/eec88bfb561b886d0f67f413dce3d5bcbc4bf72f))
+
+
+### Bug Fixes
+
+* load as an opencode v2 TUI plugin via Plugin.define ([#13](https://github.com/lhw/opencode-plugin-usage/issues/13)) ([702beb1](https://github.com/lhw/opencode-plugin-usage/commit/702beb1b21c1d9af7909e27f9a464f3b23203401))
+
 ## [1.1.1](https://github.com/lhw/opencode-plugin-usage/compare/v1.1.0...v1.1.1) (2026-09-02)
 
 
