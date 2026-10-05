@@ -18,7 +18,7 @@
   "scripts": {
     "build": "esbuild src/tui.ts --bundle --format=esm --platform=node --external:@opencode/plugin/tui --external:@opentui/solid --external:@opentui/core --external:solid-js --outfile=dist/tui.js",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/check-parser.mjs",
+    "test": "node scripts/check-parser.mjs && node --conditions=browser scripts/check-layout.mjs",
     "prepublishOnly": "npm run typecheck && npm run build && npm test"
   },
   "keywords": [

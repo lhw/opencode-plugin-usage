@@ -39,7 +39,7 @@ interface State {
 
 const BAR_FULL = "━";
 const BAR_WIDTH = 10;
-const LABEL_WIDTH = 6;
+const LABEL_WIDTH = 8;
 const BOLD = createTextAttributes({ bold: true });
 
 const providers = [
@@ -216,7 +216,7 @@ export default Plugin.define({
   },
 });
 
-function renderPanel(
+export function renderPanel(
   state: State,
   config: PluginOptions,
   theme: Theme,
@@ -232,7 +232,7 @@ function renderPanel(
             {
               fg: part.fg,
               ...(part.bold ? { attributes: BOLD } : {}),
-              ...(part.width !== undefined ? { width: part.width } : {}),
+              ...(part.width !== undefined ? { width: part.width, flexShrink: 0, wrapMode: "none" } : {}),
             },
             [truncate(part.text)],
           ),
@@ -243,7 +243,7 @@ function renderPanel(
                 {
                   fg: part.fg,
                   ...(part.bold ? { attributes: BOLD } : {}),
-                  ...(part.width !== undefined ? { width: part.width } : {}),
+                  ...(part.width !== undefined ? { width: part.width, flexShrink: 0, wrapMode: "none" } : {}),
                 },
                 [truncate(part.text)],
               ),
@@ -316,17 +316,17 @@ function formatMoney(amount: number, currency: string): string {
 
 function windowLine(window: UsageWindow, theme: Theme): Line {
   const color = tierColor(window.percent, theme);
-  const right: LinePart[] = [];
-  if (window.resetInSec > 0) {
-    right.push({ text: `· resets ${formatReset(window.resetInSec)}`, fg: theme.text.muted });
-  }
   return {
     parts: [
       { text: window.label, fg: theme.text.base, width: LABEL_WIDTH },
-      { text: barString(window.percent), fg: color },
-      { text: ` ${formatPercent(window.percent)}`, fg: color },
+      { text: barString(window.percent), fg: color, width: BAR_WIDTH },
+      { text: ` ${formatPercent(window.percent).padStart(4)}`, fg: color, width: 5 },
     ],
-    right: right.length > 0 ? right : undefined,
+    right: [{
+      text: window.resetInSec > 0 ? ` in ${formatReset(window.resetInSec)}` : "",
+      fg: theme.text.muted,
+      width: 11,
+    }],
   };
 }
 
