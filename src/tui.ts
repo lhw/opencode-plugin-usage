@@ -122,13 +122,16 @@ export default Plugin.define({
       // Don't hammer the API: honor a minimum interval once we have data.
       if (state.usageByProvider[providerId] && Date.now() - state.lastFetchAt < config.minRefreshMs) return;
 
-      const apiKey = provider.resolveApiKey({
+      const keyContext = {
         options,
         env: process.env,
         stateDir: dataDir(),
-      });
+      };
+      const apiKey = provider.resolveApiKey(keyContext);
       if (!apiKey) {
-        state.errorByProvider[providerId] = `no API key — add "providers.${providerId}.apiKey" or run opencode auth login for ${providerId}`;
+        state.errorByProvider[providerId] = providerId === "openai"
+          ? "no OAuth access token — run opencode auth login for openai"
+          : `no API key — add "providers.${providerId}.apiKey" or run opencode auth login for ${providerId}`;
         delete state.usageByProvider[providerId];
         repaint();
         return;
@@ -136,7 +139,10 @@ export default Plugin.define({
 
       state.refreshing = true;
       try {
-        const usage = await provider.fetchUsage(apiKey, { timeoutMs: config.timeoutMs });
+        const usage = await provider.fetchUsage(apiKey, {
+          timeoutMs: config.timeoutMs,
+          ...(provider.resolveAccountId ? { accountId: provider.resolveAccountId(keyContext) } : {}),
+        });
         state.lastFetchAt = Date.now();
         state.usageByProvider[providerId] = usage;
         delete state.errorByProvider[providerId];

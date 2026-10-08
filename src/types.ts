@@ -39,11 +39,13 @@ export interface ResolveKeyContext {
 
 export interface FetchContext {
   timeoutMs: number;
+  accountId?: string;
 }
 
 export interface Provider {
   id: string;
   name: string;
   resolveApiKey(ctx: ResolveKeyContext): string | undefined;
+  resolveAccountId?(ctx: ResolveKeyContext): string | undefined;
   fetchUsage(apiKey: string, ctx: FetchContext): Promise<ProviderUsage>;
 }

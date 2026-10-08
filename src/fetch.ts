@@ -9,7 +9,7 @@ export async function fetchJSON(
     const res = await fetch(url, { headers, signal: controller.signal });
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
-        throw new Error(`invalid or expired API key (HTTP ${res.status})`);
+        throw new Error(`authentication or permission denied (HTTP ${res.status})`);
       }
       throw new Error(`HTTP ${res.status}`);
     }

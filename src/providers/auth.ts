@@ -18,6 +18,44 @@ export function readKeyFromAuth(entry: string, stateDir: string | undefined): st
   return undefined;
 }
 
+export interface OAuthCredentials {
+  access: string;
+  accountId?: string;
+}
+
+export function storedOAuthCredentials(entry: string, ctx: ResolveKeyContext): OAuthCredentials | undefined {
+  const content = ctx.env["OPENCODE_AUTH_CONTENT"];
+  if (content) {
+    try {
+      const credentials = asOAuthCredentials(JSON.parse(content)?.[entry]);
+      if (credentials) return credentials;
+    } catch {
+      // malformed; try the auth store
+    }
+  }
+  for (const dir of candidateAuthDirs(ctx.stateDir)) {
+    try {
+      const credentials = asOAuthCredentials(JSON.parse(readFileSync(`${dir}/auth.json`, "utf8"))?.[entry]);
+      if (credentials) return credentials;
+    } catch {
+      // try next candidate
+    }
+  }
+  return undefined;
+}
+
+function asOAuthCredentials(stored: unknown): OAuthCredentials | undefined {
+  if (typeof stored !== "object" || stored === null || Array.isArray(stored)) return undefined;
+  const credentials = stored as Record<string, unknown>;
+  if (credentials["type"] !== "oauth" || typeof credentials["access"] !== "string" || !credentials["access"]) {
+    return undefined;
+  }
+  return {
+    access: credentials["access"],
+    ...(typeof credentials["accountId"] === "string" ? { accountId: credentials["accountId"] } : {}),
+  };
+}
+
 function candidateAuthDirs(stateDir: string | undefined): string[] {
   const dirs: string[] = [];
   const seen = new Set<string>();

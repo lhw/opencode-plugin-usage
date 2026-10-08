@@ -1,36 +1,52 @@
 import { fetchJSON, isRecord, num } from "../fetch.ts";
-import { storedApiKey } from "./auth.ts";
-import type { BalanceInfo, FetchContext, Provider, ProviderUsage, ResolveKeyContext } from "../types.ts";
+import { storedOAuthCredentials } from "./auth.ts";
+import type { FetchContext, Provider, ProviderUsage, ResolveKeyContext, UsageWindow } from "../types.ts";
 
-const CREDITS_URL = "https://api.openai.com/v1/dashboard/billing/credit_grants";
+const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 const AUTH_ENTRY = "openai";
-const API_KEY_ENV = "OPENAI_API_KEY";
 
-export async function fetchUsage(apiKey: string, ctx: FetchContext): Promise<ProviderUsage> {
-  const data = await fetchJSON(
-    CREDITS_URL,
-    { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
-    ctx.timeoutMs,
-  );
-
-  const balance = parseCreditGrants(data);
-  if (balance.length === 0) throw new Error("no credit data in response");
-  return { provider: "openai", windows: [], balance, fetchedAt: Date.now() };
+export async function fetchUsage(accessToken: string, ctx: FetchContext): Promise<ProviderUsage> {
+  const data = await fetchJSON(USAGE_URL, {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: "application/json",
+    "User-Agent": "codex-cli",
+    ...(ctx.accountId ? { "ChatGPT-Account-Id": ctx.accountId } : {}),
+  }, ctx.timeoutMs);
+  const windows = parseCodexUsage(data, Date.now() / 1000);
+  if (windows.length === 0) throw new Error("no Codex usage windows found in response");
+  return { provider: "openai", windows, fetchedAt: Date.now() };
 }
 
-// GET /v1/dashboard/billing/credit_grants (org admin key) -> { total_available, ... } (USD).
-export function parseCreditGrants(data: unknown): BalanceInfo[] {
-  if (!isRecord(data)) return [];
-  const available = num(data["total_available"]);
-  if (available === undefined) return [];
-  return [{ currency: "USD", total: available }];
+export function parseCodexUsage(data: unknown, nowSec: number): UsageWindow[] {
+  if (!isRecord(data) || !isRecord(data["rate_limit"])) return [];
+  const rateLimit = data["rate_limit"];
+  return [
+    codexWindow(rateLimit["primary_window"], "rolling", "5h", nowSec),
+    codexWindow(rateLimit["secondary_window"], "weekly", "Week", nowSec),
+  ].filter((window): window is UsageWindow => window !== undefined);
+}
+
+function codexWindow(value: unknown, id: UsageWindow["id"], label: string, nowSec: number): UsageWindow | undefined {
+  if (!isRecord(value)) return undefined;
+  const percent = num(value["used_percent"]);
+  if (percent === undefined) return undefined;
+  const resetAt = num(value["reset_at"]);
+  return {
+    id,
+    label,
+    percent: Math.max(0, Math.min(100, percent)),
+    resetInSec: resetAt === undefined ? 0 : Math.max(0, resetAt - nowSec),
+  };
 }
 
 export const openaiProvider: Provider = {
   id: "openai",
-  name: "OpenAI",
+  name: "OpenAI Codex",
   resolveApiKey(ctx: ResolveKeyContext): string | undefined {
-    return storedApiKey(AUTH_ENTRY, ctx, API_KEY_ENV);
+    return storedOAuthCredentials(AUTH_ENTRY, ctx)?.access;
+  },
+  resolveAccountId(ctx: ResolveKeyContext): string | undefined {
+    return storedOAuthCredentials(AUTH_ENTRY, ctx)?.accountId;
   },
   fetchUsage,
 };

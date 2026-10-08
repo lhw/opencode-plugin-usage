@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { parseUsageResponse } from "../src/providers/opencode-go.ts";
 import { parseBalance } from "../src/providers/deepseek.ts";
 import { parseCredits } from "../src/providers/openrouter.ts";
-import { parseCreditGrants } from "../src/providers/openai.ts";
+import { fetchUsage as fetchOpenAIUsage, openaiProvider, parseCodexUsage } from "../src/providers/openai.ts";
 
 const now = 1_752_000_000;
 
@@ -105,14 +105,50 @@ assert.deepEqual(parseCredits({ data: { total_usage: 1 } }), []);
 assert.deepEqual(parseCredits({}), []);
 assert.deepEqual(parseCredits(null), []);
 
-// openai credit grants
-assert.deepEqual(parseCreditGrants({ total_available: 12.5, total_granted: 20, total_used: 7.5 }), [
-  { currency: "USD", total: 12.5 },
-]);
-assert.deepEqual(parseCreditGrants({ total_granted: 20 }), []);
-assert.deepEqual(parseCreditGrants("nope"), []);
+// Codex OAuth resolution uses the access token and account ID, never the refresh token.
+const openaiAuthContext = {
+  env: {
+    OPENCODE_AUTH_CONTENT: JSON.stringify({
+      openai: { type: "oauth", access: "access-token", refresh: "refresh-token", accountId: "account-123" },
+    }),
+  },
+};
+assert.equal(openaiProvider.resolveApiKey(openaiAuthContext), "access-token");
+assert.equal(openaiProvider.resolveAccountId(openaiAuthContext), "account-123");
 
-console.log("openrouter + openai checks passed");
+// Codex usage windows report used_percent and reset_at Unix seconds.
+const codexUsage = {
+  rate_limit: {
+    primary_window: { used_percent: 38, reset_at: now + 3600, limit_window_seconds: 18000 },
+    secondary_window: { used_percent: 74, reset_at: now + 86400, limit_window_seconds: 604800 },
+  },
+};
+assert.deepEqual(parseCodexUsage(codexUsage, now), [
+  { id: "rolling", label: "5h", percent: 38, resetInSec: 3600 },
+  { id: "weekly", label: "Week", percent: 74, resetInSec: 86400 },
+]);
+assert.deepEqual(parseCodexUsage({ rate_limit: { primary_window: { used_percent: 120 } } }, now), [
+  { id: "rolling", label: "5h", percent: 100, resetInSec: 0 },
+]);
+assert.deepEqual(parseCodexUsage({}), []);
+
+// Verify the request uses the Codex endpoint and account-scoped OAuth headers.
+const originalFetch = globalThis.fetch;
+let request;
+globalThis.fetch = async (url, options) => {
+  request = { url, options };
+  return new Response(JSON.stringify(codexUsage), { status: 200, headers: { "Content-Type": "application/json" } });
+};
+try {
+  await fetchOpenAIUsage("access-token", { timeoutMs: 1000, accountId: "account-123" });
+} finally {
+  globalThis.fetch = originalFetch;
+}
+assert.equal(request.url, "https://chatgpt.com/backend-api/wham/usage");
+assert.equal(request.options.headers.Authorization, "Bearer access-token");
+assert.equal(request.options.headers["ChatGPT-Account-Id"], "account-123");
+
+console.log("openrouter + OpenAI Codex checks passed");
 
 // percent of exactly 1 is 1%, not 100% (fraction heuristic must not fire on integer percents)
 w = parseUsageResponse({ rollingUsage: { percent: 1, resetInSec: 600 } }, now);
