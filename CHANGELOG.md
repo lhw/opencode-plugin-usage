@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.4](https://github.com/lhw/opencode-plugin-usage/compare/v2.0.3...v2.0.4) (2026-10-08)
+
+
+### Bug Fixes
+
+* label Codex windows by limit_window_seconds, not slot ([cce6960](https://github.com/lhw/opencode-plugin-usage/commit/cce6960ff38807fa65c0b492ee064f132c5be599))
+
 ## [2.0.3](https://github.com/lhw/opencode-plugin-usage/compare/v2.0.2...v2.0.3) (2026-10-08)
 
 
