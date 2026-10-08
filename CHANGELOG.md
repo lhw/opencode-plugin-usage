@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/lhw/opencode-plugin-usage/compare/v2.0.0...v2.0.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* keep provider usage columns aligned ([32c6fb5](https://github.com/lhw/opencode-plugin-usage/commit/32c6fb5a2880c6d657dc0e058e1a7c43298355b8))
+
 ## [2.0.0](https://github.com/lhw/opencode-plugin-usage/compare/v1.1.1...v2.0.0) (2026-09-20)
 
 
