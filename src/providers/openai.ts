@@ -40,11 +40,22 @@ export async function resolveCredentials(ctx: ResolveKeyContext): Promise<Provid
   return legacy ? { token: legacy.access, ...(legacy.accountId ? { accountId: legacy.accountId } : {}) } : undefined;
 }
 
-function codexWindow(value: unknown, id: UsageWindow["id"], label: string, nowSec: number): UsageWindow | undefined {
+function codexWindow(value: unknown, fallbackId: UsageWindow["id"], fallbackLabel: string, nowSec: number): UsageWindow | undefined {
   if (!isRecord(value)) return undefined;
   const percent = num(value["used_percent"]);
   if (percent === undefined) return undefined;
   const resetAt = num(value["reset_at"]);
+  // Codex moves a weekly-only limit into the primary slot, so classify by the
+  // window's own duration instead of its slot. Fall back to the slot's label.
+  const seconds = num(value["limit_window_seconds"]);
+  const kind = seconds === undefined
+    ? undefined
+    : seconds <= 6 * 3600
+      ? { id: "rolling" as const, label: "5h" }
+      : seconds <= 8 * 24 * 3600
+        ? { id: "weekly" as const, label: "Week" }
+        : { id: "monthly" as const, label: "Month" };
+  const { id, label } = kind ?? { id: fallbackId, label: fallbackLabel };
   return {
     id,
     label,

@@ -153,6 +153,12 @@ assert.deepEqual(parseCodexUsage(codexUsage, now), [
 assert.deepEqual(parseCodexUsage({ rate_limit: { primary_window: { used_percent: 120 } } }, now), [
   { id: "rolling", label: "5h", percent: 100, resetInSec: 0 },
 ]);
+// A weekly-only limit in the primary slot (secondary null) is labelled Week, not 5h.
+assert.deepEqual(parseCodexUsage({
+  rate_limit: { primary_window: { used_percent: 12, reset_at: now + 3600, limit_window_seconds: 604800 }, secondary_window: null },
+}, now), [
+  { id: "weekly", label: "Week", percent: 12, resetInSec: 3600 },
+]);
 assert.deepEqual(parseCodexUsage({}), []);
 
 // Verify the request uses the Codex endpoint and account-scoped OAuth headers.
