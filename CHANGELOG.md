@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/lhw/opencode-plugin-usage/compare/v2.0.2...v2.0.3) (2026-10-08)
+
+
+### Bug Fixes
+
+* read provider credentials from OpenCode v2 store ([628e689](https://github.com/lhw/opencode-plugin-usage/commit/628e6891566e09a3c87d1c57fe58afb4ef4b2a03))
+
 ## [2.0.2](https://github.com/lhw/opencode-plugin-usage/compare/v2.0.1...v2.0.2) (2026-10-08)
 
 
