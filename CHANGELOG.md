@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/lhw/opencode-plugin-usage/compare/v2.0.1...v2.0.2) (2026-10-08)
+
+
+### Bug Fixes
+
+* use Codex OAuth usage endpoint ([ad3a54a](https://github.com/lhw/opencode-plugin-usage/commit/ad3a54adfaa2718c4c6982d4de97e9507646a195))
+
 ## [2.0.1](https://github.com/lhw/opencode-plugin-usage/compare/v2.0.0...v2.0.1) (2026-10-08)
 
 
