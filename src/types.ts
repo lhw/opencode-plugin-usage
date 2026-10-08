@@ -33,8 +33,26 @@ export interface ProviderOptions {
 export interface ResolveKeyContext {
   options?: ProviderOptions;
   env: Record<string, string | undefined>;
-  /** opencode data dir (where auth.json lives) */
+  /** OpenCode data dir (legacy auth.json fallback) */
   stateDir?: string;
+  listCredentials?: () => Promise<StoredProviderCredential[]>;
+}
+
+export interface StoredProviderCredential {
+  integrationID: string;
+  active: boolean;
+  value: {
+    type: string;
+    key?: string;
+    access?: string;
+    refresh?: string;
+    metadata?: Record<string, unknown>;
+  };
+}
+
+export interface ProviderCredentials {
+  token: string;
+  accountId?: string;
 }
 
 export interface FetchContext {
@@ -45,7 +63,8 @@ export interface FetchContext {
 export interface Provider {
   id: string;
   name: string;
-  resolveApiKey(ctx: ResolveKeyContext): string | undefined;
+  resolveApiKey(ctx: ResolveKeyContext): string | undefined | Promise<string | undefined>;
+  resolveCredentials?(ctx: ResolveKeyContext): Promise<ProviderCredentials | undefined>;
   resolveAccountId?(ctx: ResolveKeyContext): string | undefined;
   fetchUsage(apiKey: string, ctx: FetchContext): Promise<ProviderUsage>;
 }

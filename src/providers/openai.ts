@@ -1,6 +1,6 @@
 import { fetchJSON, isRecord, num } from "../fetch.ts";
 import { storedOAuthCredentials } from "./auth.ts";
-import type { FetchContext, Provider, ProviderUsage, ResolveKeyContext, UsageWindow } from "../types.ts";
+import type { FetchContext, Provider, ProviderCredentials, ProviderUsage, ResolveKeyContext, UsageWindow } from "../types.ts";
 
 const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 const AUTH_ENTRY = "openai";
@@ -26,6 +26,20 @@ export function parseCodexUsage(data: unknown, nowSec: number): UsageWindow[] {
   ].filter((window): window is UsageWindow => window !== undefined);
 }
 
+export async function resolveCredentials(ctx: ResolveKeyContext): Promise<ProviderCredentials | undefined> {
+  const credential = (await ctx.listCredentials?.())
+    ?.find((entry) => entry.integrationID === AUTH_ENTRY && entry.active && entry.value.type === "oauth");
+  if (credential?.value.access) {
+    const accountId = credential.value.metadata?.["accountID"] ?? credential.value.metadata?.["accountId"];
+    return {
+      token: credential.value.access,
+      ...(typeof accountId === "string" ? { accountId } : {}),
+    };
+  }
+  const legacy = storedOAuthCredentials(AUTH_ENTRY, ctx);
+  return legacy ? { token: legacy.access, ...(legacy.accountId ? { accountId: legacy.accountId } : {}) } : undefined;
+}
+
 function codexWindow(value: unknown, id: UsageWindow["id"], label: string, nowSec: number): UsageWindow | undefined {
   if (!isRecord(value)) return undefined;
   const percent = num(value["used_percent"]);
@@ -45,6 +59,7 @@ export const openaiProvider: Provider = {
   resolveApiKey(ctx: ResolveKeyContext): string | undefined {
     return storedOAuthCredentials(AUTH_ENTRY, ctx)?.access;
   },
+  resolveCredentials,
   resolveAccountId(ctx: ResolveKeyContext): string | undefined {
     return storedOAuthCredentials(AUTH_ENTRY, ctx)?.accountId;
   },

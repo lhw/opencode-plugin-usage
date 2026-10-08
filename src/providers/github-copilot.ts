@@ -149,8 +149,8 @@ function clampPercent(value: number): number {
 export const githubCopilotProvider: Provider = {
   id: "github-copilot",
   name: "GitHub Copilot",
-  resolveApiKey(ctx: ResolveKeyContext): string | undefined {
-    const fromPrimary = storedApiKey(AUTH_ENTRY, ctx, API_KEY_ENV);
+  async resolveApiKey(ctx: ResolveKeyContext): Promise<string | undefined> {
+    const fromPrimary = await storedApiKey(AUTH_ENTRY, ctx, API_KEY_ENV);
     if (fromPrimary) return fromPrimary;
     // fallback envs that users commonly set for GitHub
     const fallback =
@@ -160,7 +160,7 @@ export const githubCopilotProvider: Provider = {
       ctx.env["GITHUB_COPILOT_API_TOKEN"]?.trim();
     if (fallback) return fallback;
     // opencode also stores enterprise variant under github-copilot-enterprise
-    const fromEnterprise = storedApiKey("github-copilot-enterprise", ctx);
+    const fromEnterprise = await storedApiKey("github-copilot-enterprise", ctx);
     if (fromEnterprise) return fromEnterprise;
     // ponytail: local host gh CLI credential (keyring/hosts.yml) — no explicit token required
     const fromGh = ghCliToken();
@@ -190,8 +190,8 @@ function ghCliToken(): string | undefined {
 export const githubCopilotEnterpriseProvider: Provider = {
   id: "github-copilot-enterprise",
   name: "GitHub Copilot",
-  resolveApiKey(ctx: ResolveKeyContext): string | undefined {
-    const fromEnterprise = storedApiKey("github-copilot-enterprise", ctx);
+  async resolveApiKey(ctx: ResolveKeyContext): Promise<string | undefined> {
+    const fromEnterprise = await storedApiKey("github-copilot-enterprise", ctx);
     if (fromEnterprise) return fromEnterprise;
     return githubCopilotProvider.resolveApiKey(ctx);
   },

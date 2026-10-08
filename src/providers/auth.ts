@@ -1,8 +1,7 @@
 import { readFileSync } from "node:fs";
 import type { ResolveKeyContext } from "../types.ts";
 
-// opencode stores API keys in auth.json under the provider id: { type: "api", key }.
-// github-copilot stores oauth tokens as { type: "oauth", refresh, access }.
+// Legacy auth.json stores API keys as { type: "api", key } and OAuth as { refresh, access }.
 export function readKeyFromAuth(entry: string, stateDir: string | undefined): string | undefined {
   for (const dir of candidateAuthDirs(stateDir)) {
     try {
@@ -81,10 +80,10 @@ function candidateAuthDirs(stateDir: string | undefined): string[] {
 }
 
 /**
- * Resolve a provider's API key the way opencode would: explicit option override,
- * opencode's injectable auth env, the auth store, then a provider env var.
+ * Resolve in order: plugin option, injected auth, active SQLite credential,
+ * legacy auth.json, then the provider environment variable.
  */
-export function storedApiKey(entry: string, ctx: ResolveKeyContext, envKey?: string): string | undefined {
+export async function storedApiKey(entry: string, ctx: ResolveKeyContext, envKey?: string): Promise<string | undefined> {
   const trimmed = ctx.options?.apiKey?.trim();
   if (trimmed) return trimmed;
   const authContent = ctx.env["OPENCODE_AUTH_CONTENT"];
@@ -97,6 +96,16 @@ export function storedApiKey(entry: string, ctx: ResolveKeyContext, envKey?: str
     } catch {
       // malformed; ignore
     }
+  }
+  try {
+    const credential = (await ctx.listCredentials?.())
+      ?.find((item) => item.integrationID === entry && item.active)?.value;
+    if (credential?.type === "key" && credential.key) return credential.key;
+    if (credential?.type === "oauth" && (credential.refresh || credential.access)) {
+      return credential.refresh || credential.access;
+    }
+  } catch {
+    // try the legacy auth store
   }
   const fromStore = readKeyFromAuth(entry, ctx.stateDir);
   if (fromStore) return fromStore;

@@ -30,7 +30,7 @@ export function parseCredits(data: unknown): BalanceInfo[] {
 export const openrouterProvider: Provider = {
   id: "openrouter",
   name: "OpenRouter",
-  resolveApiKey(ctx: ResolveKeyContext): string | undefined {
+  async resolveApiKey(ctx: ResolveKeyContext): Promise<string | undefined> {
     return storedApiKey(AUTH_ENTRY, ctx, API_KEY_ENV);
   },
   fetchUsage,

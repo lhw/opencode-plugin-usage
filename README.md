@@ -102,14 +102,13 @@ All options are optional. They go in the `options` object of the plugin's
 
 ## API keys
 
-For providers other than OpenAI, keys resolve automatically from what opencode itself uses, in order:
+For providers other than OpenAI, credentials resolve from OpenCode in this order:
 
 1. `providers.<id>.apiKey` in the plugin options
 2. `OPENCODE_AUTH_CONTENT` (opencode's injectable auth file)
-3. opencode's auth store — `auth.json` in the opencode data directory
-   (`~/.local/share/opencode/` on Linux, `~/Library/Application Support/opencode/`
-   on macOS, `%APPDATA%\opencode\` on Windows), under the provider id
-4. the provider's env var (see table below)
+3. active OpenCode credential (V2 SQLite credential store)
+4. legacy `auth.json` in OpenCode's data directory
+5. the provider's env var (see table below)
 
 So if you've already connected a provider in opencode (`opencode auth login` or
 `/connect`), no extra configuration is needed.

@@ -4,6 +4,7 @@ import { parseUsageResponse } from "../src/providers/opencode-go.ts";
 import { parseBalance } from "../src/providers/deepseek.ts";
 import { parseCredits } from "../src/providers/openrouter.ts";
 import { fetchUsage as fetchOpenAIUsage, openaiProvider, parseCodexUsage } from "../src/providers/openai.ts";
+import { storedApiKey } from "../src/providers/auth.ts";
 
 const now = 1_752_000_000;
 
@@ -115,6 +116,28 @@ const openaiAuthContext = {
 };
 assert.equal(openaiProvider.resolveApiKey(openaiAuthContext), "access-token");
 assert.equal(openaiProvider.resolveAccountId(openaiAuthContext), "account-123");
+assert.deepEqual(await openaiProvider.resolveCredentials({
+  env: {},
+  listCredentials: async () => [
+    { integrationID: "openrouter", active: true, value: { type: "oauth", access: "wrong-provider" } },
+    { integrationID: "openai", active: false, value: { type: "oauth", access: "inactive" } },
+    {
+      integrationID: "openai",
+      active: true,
+      value: { type: "oauth", access: "sqlite-access", metadata: { accountID: "sqlite-account" } },
+    },
+  ],
+}), { token: "sqlite-access", accountId: "sqlite-account" });
+assert.deepEqual(await openaiProvider.resolveCredentials(openaiAuthContext), {
+  token: "access-token",
+  accountId: "account-123",
+});
+assert.equal(await storedApiKey("deepseek", {
+  env: {},
+  listCredentials: async () => [
+    { integrationID: "deepseek", active: true, value: { type: "key", key: "sqlite-api-key" } },
+  ],
+}), "sqlite-api-key");
 
 // Codex usage windows report used_percent and reset_at Unix seconds.
 const codexUsage = {

@@ -41,7 +41,7 @@ export function parseBalance(infos: unknown): BalanceInfo[] {
 export const deepseekProvider: Provider = {
   id: "deepseek",
   name: "DeepSeek",
-  resolveApiKey(ctx: ResolveKeyContext): string | undefined {
+  async resolveApiKey(ctx: ResolveKeyContext): Promise<string | undefined> {
     return storedApiKey(AUTH_ENTRY, ctx, API_KEY_ENV);
   },
   fetchUsage,

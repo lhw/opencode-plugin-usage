@@ -126,22 +126,26 @@ export default Plugin.define({
         options,
         env: process.env,
         stateDir: dataDir(),
+        listCredentials: () => context.client.credential.list(),
       };
-      const apiKey = provider.resolveApiKey(keyContext);
-      if (!apiKey) {
-        state.errorByProvider[providerId] = providerId === "openai"
-          ? "no OAuth access token — run opencode auth login for openai"
-          : `no API key — add "providers.${providerId}.apiKey" or run opencode auth login for ${providerId}`;
-        delete state.usageByProvider[providerId];
-        repaint();
-        return;
-      }
-
       state.refreshing = true;
       try {
+        const credentials = await provider.resolveCredentials?.(keyContext);
+        const apiKey = credentials?.token ?? await provider.resolveApiKey(keyContext);
+        if (!apiKey) {
+          state.errorByProvider[providerId] = providerId === "openai"
+            ? "no OpenAI OAuth credential — connect OpenAI in /connect"
+            : `no API key — add "providers.${providerId}.apiKey" or run opencode auth login for ${providerId}`;
+          delete state.usageByProvider[providerId];
+          return;
+        }
         const usage = await provider.fetchUsage(apiKey, {
           timeoutMs: config.timeoutMs,
-          ...(provider.resolveAccountId ? { accountId: provider.resolveAccountId(keyContext) } : {}),
+          ...(credentials?.accountId
+            ? { accountId: credentials.accountId }
+            : provider.resolveAccountId
+              ? { accountId: provider.resolveAccountId(keyContext) }
+              : {}),
         });
         state.lastFetchAt = Date.now();
         state.usageByProvider[providerId] = usage;

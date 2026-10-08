@@ -194,7 +194,7 @@ function clampPercent(value: number): number {
 export const opencodeGoProvider: Provider = {
   id: "opencode-go",
   name: "OpenCode Go",
-  resolveApiKey(ctx: ResolveKeyContext): string | undefined {
+  async resolveApiKey(ctx: ResolveKeyContext): Promise<string | undefined> {
     return storedApiKey(AUTH_ENTRY, ctx, API_KEY_ENV);
   },
   fetchUsage,
